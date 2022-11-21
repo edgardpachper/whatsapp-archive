@@ -9,6 +9,7 @@ import itertools
 import jinja2
 import logging
 import os.path
+import os
 import re
 
 # Format of the standard WhatsApp export line. This is likely to change in the
@@ -49,7 +50,7 @@ def ParseLine(line):
     return None
 
 
-def IdentifyMessages(lines):
+def IdentifyMessages(lines, os=os.getcwd()):
     """Input text can contain multi-line messages. If there's a line that
     doesn't start with a date and a name, that's probably a continuation of the
     previous message and should be appended to it.
@@ -65,7 +66,10 @@ def IdentifyMessages(lines):
                 # We have a new message, so there will be no more lines for the
                 # one we've seen previously -- it's complete. Let's add it to
                 # the list.
-                messages.append((msg_date, msg_user, msg_body))
+                if "(archivo adjunto)" in msg_body or "(attached file)" in msg_body:
+                    messages.append((msg_date, msg_user, msg_body, (os + "\\" + msg_body.split("(")[0][1:-1]).replace("\\", '/')))
+                else:
+                    messages.append((msg_date, msg_user, msg_body, 0))
             msg_date, msg_user, msg_body = m
         else:
             if msg_date is None:
@@ -75,7 +79,10 @@ def IdentifyMessages(lines):
             msg_body += '\n' + line.strip()
     # The last message remains. Let's add it, if it exists.
     if msg_date is not None:
-        messages.append((msg_date, msg_user, msg_body))
+        if "(archivo adjunto)" in msg_body or "(attached file)" in msg_body:
+            messages.append((msg_date, msg_user, msg_body, msg_body.split("(")[0][1:-1], os))
+        else:
+            messages.append((msg_date, msg_user, msg_body, 0, os))
     return messages
 
 
@@ -99,34 +106,100 @@ def FormatHTML(data):
         <title>WhatsApp archive {{ input_basename }}</title>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>WhatsApp archive DireccionamientoEs.txt</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {
-                font-family: sans-serif;
+                font-family: Arial, Helvetica, sans-serif;
                 font-size: 10px;
+                background-color: rgb(255, 255, 255);
+                display: flex;
+                width: 100%;
+                flex-direction: column;
             }
-            ol.users {
+            @media screen and (min-width: 600px) {
+                body, ol.users {
+                flex-direction: column;
+                width: 600px;
+                }
+            }
+                    ol.users {
                 list-style-type: none;
                 list-style-position: inside;
-                margin: 0;
-                padding: 0;
+                margin: 1em;
+                padding-left: 0.6em;
+                background-color: rgb(250, 240, 227);
+                border-radius: 7px;
             }
             ol.messages {
                 list-style-type: none;
                 list-style-position: inside;
-                margin: 0;
-                padding: 0;
+                margin: 1em;
+                padding-left: 1.5em;
+
+                /* border-width:1px;
+                border-style: solid;
+                border-color:rgb(26, 33, 22); */
             }
             ol.messages li {
                 margin-left: 1em;
                 font-size: 12px;
+                background-color: rgb(220,248,200);
+                margin: 1em;
+                margin-left: 0em;
+                margin-bottom: 0em;
+                margin-top: 0.3em;
+                padding: 0.8em;
+                border-width:1px;
+                border-style: solid;
+                border-color:rgb(225, 245, 212);
+                border-radius: 7px;
+                background: #dcf8c8;
+                box-shadow:  5px 5px 5px #b0c6a0,
+                            0px -0px 7px #fffff0;
             }
+
+            ol.messages img, audio, video, embed {
+                width: 94%;
+                margin: 1em;
+                margin-bottom: 0.8em;
+                margin-top: 0.3em;
+                padding: 0.8em;
+                border-width:1px;
+                border-width:1px;
+                border-style: solid;
+                border-color:rgb(225, 245, 212);
+                border-radius: 7px;
+                background: #dcf8c8;
+                box-shadow:  5px 5px 5px #b0c6a0,
+                            0px -0px 7px #fffff0;
+            }
+
+            ol.messages img.sticker {
+                width: 30%;
+                height: 30%;
+                background: #dcf8c800;
+                border-color: rgba(225, 245, 212, 0);
+                border-radius: 7px;
+                box-shadow:  5px 5px 5px #b0c6a000,
+                            0px -0px 7px #fffff000;
+                }
+
+
             span.username {
-                color: gray;
+                color: rgb(26, 26, 26);
+                font-size: 14px;
+                font-weight: bolder;
+
             }
             span.date {
-                color: gray;
+                color: rgb(20, 20, 20);
+                font-style: Oblique;
+                font-size: 10px;
             }
         </style>
+
     </head>
     <body>
         <h1>{{ input_basename }}</h1>
@@ -137,7 +210,23 @@ def FormatHTML(data):
             <span class="date">{{ messages[0][0] }}</span>
             <ol class="messages">
             {% for message in messages %}
-                <li>{{ message[2] | e }}</li>
+                {% if message[3] != 0 %}
+                    {% if "IMG" in message[3] or ".JPEG" in message[3] or ".PNG" in message[3] or ".TIFF" in message[3] or ".ICO" in message[3] or ".gif" in message[3] %}
+                        <a href='{{ message[3] }}' target="_blank"><img src='{{ message[3] }}' width="400"></img></a>
+                    {% elif ".webp" in message[3] %}
+                            <img class="sticker" src='{{ message[3] }}' width="30" height="30">
+                    {% elif ".mp4" in message[3] or ".MPEG" in message[3] or ".3GP" in message[3] or ".AVI" in message[3] or ".WMM" in message[3] %}
+                            <video src='{{ message[3] }}' width=320  height=240 controls ></video>
+                    {% elif ".opus" in message[3] or ".mp3" in message[3] or ".AAC" in message[3]  or ".WAV" in message[3]%}
+                        <audio controls>
+                        <source src="{{ message[3] }}" type="audio/mp3">
+                        </audio>
+                    {% elif "DOC-2" in message[3] %}
+                        <embed src="{{ message[3] }}PDF" type="application/pdf" width="96%" height=800px" />
+                    {% endif %}
+                {% else %}
+                    <li>{{ message[2] | e }}</li>
+                {% endif %}
             {% endfor %}
             </ol>
             </li>
