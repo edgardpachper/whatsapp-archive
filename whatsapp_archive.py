@@ -160,7 +160,7 @@ def FormatHTML(data):
                             0px -0px 7px #fffff0;
             }
 
-            ol.messages img, audio {
+            ol.messages img, audio, video, embed {
                 width: 94%;
                 margin: 1em;
                 margin-bottom: 0.8em;
@@ -211,14 +211,18 @@ def FormatHTML(data):
             <ol class="messages">
             {% for message in messages %}
                 {% if message[3] != 0 %}
-                    {% if "IMG" in message[3] %}
+                    {% if "IMG" in message[3] or ".JPEG" in message[3] or ".PNG" in message[3] or ".TIFF" in message[3] or ".ICO" in message[3] or ".gif" in message[3] %}
                         <a href='{{ message[3] }}' target="_blank"><img src='{{ message[3] }}' width="400"></img></a>
                     {% elif ".webp" in message[3] %}
                             <img class="sticker" src='{{ message[3] }}' width="30" height="30">
-                    {% elif "opus" in message[3] or "mp3" in message[3] %}
+                    {% elif ".mp4" in message[3] or ".MPEG" in message[3] or ".3GP" in message[3] or ".AVI" in message[3] or ".WMM" in message[3] %}
+                            <video src='{{ message[3] }}' width=320  height=240 controls ></video>
+                    {% elif ".opus" in message[3] or ".mp3" in message[3] or ".AAC" in message[3]  or ".WAV" in message[3]%}
                         <audio controls>
                         <source src="{{ message[3] }}" type="audio/mp3">
                         </audio>
+                    {% elif "DOC-2" in message[3] %}
+                        <embed src="{{ message[3] }}PDF" type="application/pdf" width="96%" height=800px" />
                     {% endif %}
                 {% else %}
                     <li>{{ message[2] | e }}</li>
