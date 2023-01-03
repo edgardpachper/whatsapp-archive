@@ -85,7 +85,7 @@ def ParseLine(matchers: Matchers, line: str):
     return None
 
 
-FILE_RE = u'(?P<path>(AUD|IMG|VID)-(\d){8}-WA\d+\.(m4a|jpg|mp4))'
+FILE_RE = u'(?P<path>(AUD|PTT|STK|IMG|VID|DOC)-(\d){8}-WA\d+\.(m4a|jpg|mp4|pdf|webp|gif|opus|mp3|aac|wav|mpeg|3gp|avi|wmm|jpeg|png|tiff|ico))'
 
 
 def IsMediaMessage(msg_body: str) -> bool:
@@ -192,7 +192,7 @@ def FormatHTML(data):
                 width: 600px;
                 }
             }
-                    ol.users {
+            ol.users {
                 list-style-type: none;
                 list-style-position: inside;
                 margin: 1em;
@@ -223,6 +223,30 @@ def FormatHTML(data):
                 box-shadow:  5px 5px 5px #b0c6a0,
                             0px -0px 7px #fffff0;
             }
+            ol.message img, audio, video, embed {
+                width: 94%;
+                margin: 1em;
+                margin-bottom: 0.8em;
+                margin-top: 0.3em;
+                padding: 0.8em;
+                border-width:1px;
+                border-width:1px;
+                border-style: solid;
+                border-color:rgb(225, 245, 212);
+                border-radius: 7px;
+                background: #dcf8c8;
+                box-shadow:  5px 5px 5px #b0c6a0,
+                            0px -0px 7px #fffff0;
+            }
+            ol.messages img.sticker {
+                width: 30%;
+                height: 30%;
+                background: #dcf8c800;
+                border-color: rgba(225, 245, 212, 0);
+                border-radius: 7px;
+                box-shadow:  5px 5px 5px #b0c6a000,
+                            0px -0px 7px #fffff000;
+                }
             span.username {
                 color: rgb(26, 26, 26);
                 font-size: 14px;
@@ -235,17 +259,8 @@ def FormatHTML(data):
                 font-size: 10px;
             }
 
-            ol.img {
-                display: block;
-                margin-left: auto;
-                margin-right: auto;
-                width: 50%;
-                border-width:1px;
-                border-style: solid;
-                border-color:rgb(225, 245, 212);
-            }
-            ol.date-index {
-                list-style: none;
+            .date-index {
+                list-style-type: none;
             }
         </style>
 
@@ -254,11 +269,11 @@ def FormatHTML(data):
         <h1>{{ input_basename }}</h1>
         <ol class="date-index">
         {% for month, days in dates %}
-              <li> {{ month[0] }}-{{ month[1] }}
-              {% for day, date_ in days %}
-              <a href="#{{ date_ }}">{{ day }}</a>
-              {% endfor %}
-              </li>
+            <li> {{ month[0] }}-{{ month[1] }}
+            {% for day, date_ in days %}
+            <a href="#{{ date_ }}">{{ day }}</a>
+            {% endfor %}
+            </li>
         {% endfor %}
         </ol>
         <ol class="users">
@@ -271,32 +286,32 @@ def FormatHTML(data):
             <ol class="messages">
             {% for _, _, body, media in messages %}
                 {% if media is not none %}
-                    {% if "IMG" in media %}
+                    {% if "IMG" in media or "jpeg" in media or "png" in media or "tiff" in media or "ico" in media or "gif" in media %}
                         <li>
                         <a href='{{ media }}' target="_blank"><img src='{{ media }}' width="400"></img></a>
                         </li>
-                    {% elif "opus" in media %}
+                    {% elif "opus" in media or "m4a" in media or "mp3" in media or "AAC" in media or "WAV" in media %}
                         <li>
-                          <audio controls>
-                            <source src="{{ media }}" type="audio/ogg; codecs=opus">
-                          </audio>
+                            <audio controls>
+                                <source src="{{ media }}" type="audio/x-m4a">
+                            </audio>
                         </li>
-                    {% elif "m4a" in media %}
+                    {% elif "mp4" in media or ".MPEG" in media or ".3GP" in media or ".AVI" in media or ".WMM" in media %}
                         <li>
-                          <audio controls>
-                            <source src="{{ media }}" type="audio/x-m4a">
-                          </audio>
+                            <video controls>
+                                <source src="{{ media }}"  width=320  height=240 type="video/mp4"/>
+                            </video>
                         </li>
-                    {% elif "mp4" in media %}
+                    {% elif ".webp" in media %}
                         <li>
-                           <video controls>
-                             <source src="{{ media }}" type="video/mp4"/>
-                           </video>
+                            <img class="sticker" src='{{ media }}' width="30" height="30">
                         </li>
+                    {% elif "DOC-2" in media %}
+                        <embed src="{{ media }}pdf" type="application/pdf" width="96%" height=800px" />
                     {% else %}
                         <li>
-                          unsupported media {{ media | e }}
-                        </li>
+                            unsupported media {{ media | e }}
+                        </li>x
                     {% endif %}
                 {% else %}
                     <li>{{ body | e }}</li>
